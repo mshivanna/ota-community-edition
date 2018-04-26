@@ -1,3 +1,4 @@
+{{- if .campaigner_docker_image }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -79,3 +80,4 @@ spec:
     targetPort: 9001
   selector:
     app: campaigner
+{{- end }}

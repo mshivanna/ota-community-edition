@@ -1,3 +1,4 @@
+{{- if .campaigner_daemon_docker_image }}
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -71,3 +72,4 @@ metadata:
 type: Opaque
 data:
   DB_PASSWORD: {{ .campaigner_daemon_db_password | b64enc }}
+{{- end }}
