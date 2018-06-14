@@ -145,4 +145,4 @@ spec:
        nodePort: 30443
   selector:
     app: gateway
-  type: NodePort
+  type: LoadBalancer
