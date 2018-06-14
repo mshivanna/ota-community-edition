@@ -143,6 +143,10 @@ spec:
        protocol: TCP
        targetPort: 8443
        nodePort: 30443
+     - name: https-hack
+       port: 8000
+       protocol: TCP
+       targetPort: 8443
   selector:
     app: gateway
-  type: NodePort
+  type: LoadBalancer
