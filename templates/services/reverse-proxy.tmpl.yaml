@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: reverse-proxy-config
+data:
+  reverse-proxy.conf: |-
+    server {
+      server_name app.{{ .ingress_dns_name }};
+      location / {
+        proxy_pass http://app/;
+      }
+    }
+    server {
+      server_name treehub.{{ .ingress_dns_name }};
+      client_max_body_size 30M;
+      location / {
+        proxy_set_header x-ats-namespace "default";
+        proxy_pass              http://treehub/;
+      }
+    }
+    server {
+      server_name tuf-reposerver.{{ .ingress_dns_name }};
+      location / {
+        proxy_set_header x-ats-namespace "default";
+        proxy_pass              http://tuf-reposerver/;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-proxy
+spec:
+  selector:
+    matchLabels:
+      app: reverse-proxy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: reverse-proxy
+    spec:
+{{ if .gke_nodepool }}
+      nodeSelector:
+        cloud.google.com/gke-nodepool: {{ .gke_nodepool }}
+{{ end }}
+      containers:
+      - name: nginx
+        image: {{ .nginx_docker_image }}
+        ports:
+        - containerPort: 80
+        - containerPort: 8443
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/conf.d/
+      volumes:
+      - name: config
+        configMap:
+          name: reverse-proxy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reverse-proxy
+spec:
+  ports:
+     - name: http
+       port: 80
+       protocol: TCP
+       targetPort: 80
+     - name: https
+       port: 8443
+       protocol: TCP
+       targetPort: 8443
+  selector:
+    app: reverse-proxy
+  type: LoadBalancer
