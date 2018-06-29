@@ -5,25 +5,55 @@ metadata:
   name: reverse-proxy-config
 data:
   reverse-proxy.conf: |-
+    proxy_set_header HOST $http_host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
     server {
       server_name app.{{ .ingress_dns_name }};
       location / {
+        auth_request     /auth-basic;
         proxy_pass http://app/;
+      }
+      location = /auth-basic {
+        internal;
+        proxy_pass              http://oauthful/auth-basic;
+        proxy_pass_request_body off;
+        proxy_set_header        Content-Length "";
+        proxy_set_header        X-Original-URI $request_uri;
       }
     }
     server {
-      server_name treehub.{{ .ingress_dns_name }};
-      client_max_body_size 30M;
-      location / {
+      server_name api.{{ .ingress_dns_name }};
+
+      location /treehub/ {
+        client_max_body_size 30M;
+        auth_request     /auth-token;
+
         proxy_set_header x-ats-namespace "default";
         proxy_pass              http://treehub/;
       }
-    }
-    server {
-      server_name tuf-reposerver.{{ .ingress_dns_name }};
-      location / {
+      location /repo/ {
+        auth_request     /auth-token;
         proxy_set_header x-ats-namespace "default";
         proxy_pass              http://tuf-reposerver/;
+      }
+
+      location = /auth-token {
+        internal;
+        client_max_body_size 30M;  # needed for treehub auth
+        proxy_pass              http://oauthful/auth-token;
+        proxy_pass_request_body off;
+        proxy_set_header        Content-Length "";
+        proxy_set_header        X-Original-URI $request_uri;
+      }
+    }
+
+    server {
+      server_name oauth2.{{ .ingress_dns_name }};
+      location / {
+        proxy_pass              http://oauthful/;
       }
     }
 ---
