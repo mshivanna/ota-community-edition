@@ -18,9 +18,12 @@ spec:
 {{ end }}
       containers:
       - name: app
-        image: opensourcefoundries/oauthful
+        image: "opensourcefoundries/oauthful:6ca0e25"
         ports:
         - containerPort: 8000
+        env:
+        - name: USER_MODULE
+          value: oauthful.user:FauxUser
 ---
 
 apiVersion: v1

@@ -41,6 +41,10 @@ data:
         proxy_set_header x-ats-namespace "default";
         proxy_pass              http://tuf-reposerver/;
       }
+      location /devices/ {
+        proxy_set_header x-ats-namespace "default";
+        proxy_pass              http://oauthful/devices/;
+      }
 
       location = /auth-token {
         internal;
@@ -55,7 +59,7 @@ data:
     server {
       server_name oauth2.{{ .ingress_dns_name }};
       location / {
-        proxy_pass              http://oauthful/;
+        proxy_pass              http://oauthful/oauth2;
       }
     }
 ---

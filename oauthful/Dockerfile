@@ -1,10 +1,9 @@
-FROM alpine
+FROM foundries/ota-api
 
-ENV PYTHONPATH=/srv/
+ENV PYTHONPATH=/srv/oauthful:/srv/ota-api
 
-COPY ./app.py /srv/oauthful/app.py
-
-RUN apk --no-cache add py3-flask py3-gunicorn
+COPY ./app.py /srv/oauthful/oauthful/
+COPY ./user.py /srv/oauthful/oauthful/
 
 EXPOSE 8000
 

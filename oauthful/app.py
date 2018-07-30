@@ -5,10 +5,10 @@ does convey the clear path to securing your OTA Community Edition server.
 
 from base64 import b64decode
 
-from flask import Flask, jsonify, make_response, request
+from flask import jsonify, make_response, request
 from werkzeug.exceptions import BadRequest, Unauthorized
 
-app = Flask(__name__)
+from ota_api.app import app
 
 
 USER_TOKENS = {
@@ -17,7 +17,7 @@ USER_TOKENS = {
 }
 
 
-@app.route('/token', methods=('POST',))
+@app.route('/oauth2/token', methods=('POST',))
 def create_token():
     gt = request.form['grant_type']
     if gt != 'client_credentials':
