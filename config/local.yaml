@@ -1,0 +1,64 @@
+# config/local.yaml
+#
+# I prefer to not use Ingress controllers in GKE for a few reasons:
+# 1) They are still in beta.
+# 2) They cost a little more than just doing a Service of type "loadBalancer".
+# 3) When you deploy this securely, you'll need your own nginx reverse-proxy
+#    that can handle authentication/authorization.
+create_ingress: false
+
+gke_nodepool: mgmt
+
+# We aren't using an Ingress, but templates/services/app.tmpl.yaml still
+# uses this for building up the DNS names of the services it uses. This
+# field must be set to the domain you host your service under. eg:
+# ingress_dns_name: foundriez.io
+ingress_dns_name: foundries.io
+
+# images
+app_docker_image: false
+campaigner_docker_image: false
+campaigner_daemon_docker_image: false
+device_registry_docker_image: advancedtelematic/device-registry:0.0.3-10-g883acfc
+director_daemon_docker_image: advancedtelematic/director:0.2.0-43-gd8c8305
+director_docker_image: advancedtelematic/director:0.2.0-43-gd8c8305
+treehub_docker_image: advancedtelematic/treehub:0.1.20
+
+# Use the 0.4 ota-tuf containers. They don't require "vault" which makes
+# deployment and management of the cluster dramatically easier.
+tuf_keyserver_daemon_docker_image: advancedtelematic/tuf-keyserver:0.4.0-46-g0298f0a
+tuf_keyserver_docker_image: advancedtelematic/tuf-keyserver:0.4.0-46-g0298f0a
+tuf_reposerver_docker_image: advancedtelematic/tuf-reposerver:0.4.0-46-g0298f0a
+
+web_events_docker_image: false
+
+# services
+device_registry_java_opts: "-Xmx450m"
+device_registry_mem: 500Mi
+
+director_daemon_java_opts: "-Xmx450m"
+director_daemon_mem: 500Mi
+
+director_java_opts: "-Xmx700m"
+director_mem: 750Mi
+
+kafka_mem: 750Mi
+kafka_disk: 80Gi
+
+mysql_disk: 80Gi
+
+treehub_java_opts: "-Xmx3500m"
+treehub_mem: 4Gi
+treehub_disk: 200Gi
+
+tuf_keyserver_daemon_java_opts: "-Xmx450m"
+tuf_keyserver_daemon_mem: 500Mi
+
+tuf_keyserver_java_opts: "-Xmx700m"
+tuf_keyserver_mem: 750Mi
+
+tuf_reposerver_java_opts: "-Xmx700m"
+tuf_reposerver_mem: 750Mi
+
+zookeeper_mem: 500Mi
+zookeeper_disk: 80Gi
