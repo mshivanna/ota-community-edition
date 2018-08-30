@@ -59,7 +59,7 @@ data:
     server {
       server_name oauth2.{{ .ingress_dns_name }};
       location / {
-        proxy_pass              http://oauthful/oauth2;
+        proxy_pass              http://oauthful/oauth2/;
       }
     }
 ---
