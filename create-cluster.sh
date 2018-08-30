@@ -68,7 +68,7 @@ EOF
 
 echo "= Creating cluster, should take about 3 minutes ..."
 ./contrib/gke/gcloud container clusters create ota-ce \
-     --machine-type n1-standard-2 --num-nodes=5 --cluster-version=1.10.4-gke.2
+     --machine-type n1-standard-2 --num-nodes=5 --cluster-version=1.10.4-gke.3
 
 ./contrib/gke/gcloud container clusters get-credentials ota-ce
 
