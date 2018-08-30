@@ -18,7 +18,7 @@ spec:
 {{ end }}
       containers:
       - name: app
-        image: opensourcefoundries/oauthful
+        image: opensourcefoundries/oauthful:e9d60c3
         ports:
         - containerPort: 8000
 ---
