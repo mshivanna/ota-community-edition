@@ -106,5 +106,12 @@ while [ "$ip" == "null" ] ; do
   sleep 10s
   echo -n "."
 done
-echo
+kubectl get pods | grep reverse-proxy | cut -f1 -d\  | xargs kubectl delete pod
 echo "  The reverse-proxy IP you need for DNS is: $ip"
+
+echo "add the below line to your /etc/hosts file"
+echo $(kubectl get svc reverse-proxy -o json | jq -r '.status.loadBalancer.ingress[0].ip')    api.${DNS_NAME} oauth2.${DNS_NAME}  app.${DNS_NAME}
+
+echo "You can verify the deployment by executing"
+echo "curl -H "Authorization: Bearer BadT0ken5" http://api.${DNS_NAME}/treehub/api/v3/config"
+echo "curl -H "Authorization: Bearer BadT0ken5" http://api.${DNS_NAME}/repo/api/v1/user_repo/root.json"

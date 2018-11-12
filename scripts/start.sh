@@ -345,15 +345,19 @@ get_credentials() {
    http --ignore-stdin --check-status -d -o "${SERVER_DIR}/root.json" GET \
    ${reposerver}/api/v1/user_repo/root.json "${namespace}"
 
-  echo "http://tuf-reposerver.${DNS_NAME}" > "${SERVER_DIR}/tufrepo.url"
+  echo "http://api.${DNS_NAME}/repo/" > "${SERVER_DIR}/tufrepo.url"
   echo "https://${SERVER_NAME}:30443" > "${SERVER_DIR}/autoprov.url"
   cat > "${SERVER_DIR}/treehub.json" <<END
-{
-    "no_auth": true,
-    "ostree": {
-        "server": "http://treehub.${DNS_NAME}/api/v3/"
-    }
-}
+  {
+      "oauth2": {
+        "server": "http://oauth2.${DNS_NAME}",
+             "client_id" : "7a455f3b-2234-43b5-9d13-7d8823494f21",
+             "client_secret" : "OTbGcZx6my"
+           },
+           "ostree": {
+               "server": "http://api.${DNS_NAME}/treehub/api/v3/"
+           }
+         }
 END
 
   zip --quiet --junk-paths ${SERVER_DIR}/{credentials.zip,autoprov.url,server_ca.pem,tufrepo.url,targets.pub,targets.sec,treehub.json,root.json}
