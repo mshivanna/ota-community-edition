@@ -5,12 +5,17 @@ set -euo pipefail
 
 readonly KUBECTL=${KUBECTL:-kubectl}
 readonly CWD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+#echo "cwd:" $CWD
 readonly DNS_NAME=${DNS_NAME:-ota.local}
+#echo "dns" $DNS_NAME
 export   SERVER_NAME=${SERVER_NAME:-ota.ce}
+#echo server_name $SERVER_NAME
 readonly SERVER_DIR=${SERVER_DIR:-${CWD}/../generated/${SERVER_NAME}}
+#echo "server_dir" ${SERVER_DIR}
 readonly DEVICES_DIR=${DEVICES_DIR:-${SERVER_DIR}/devices}
 
 readonly NAMESPACE=${NAMESPACE:-default}
+#echo ${NAMESPACE}
 readonly PROXY_PORT=${PROXY_PORT:-8200}
 readonly DB_PASS=${DB_PASS:-root}
 readonly VAULT_SHARES=${VAULT_SHARES:-5}
@@ -21,7 +26,9 @@ readonly SKIP_WEAVE=${SKIP_WEAVE:-false}
 
 
 check_dependencies() {
+#  echo "inside check dependencies"
   for cmd in ${DEPENDENCIES:-bash curl make http jq openssl kubectl kops}; do
+    command -v "${cmd}"
     [[ $(command -v "${cmd}") ]] || { echo "Please install '${cmd}'."; exit 1; }
   done
 }
@@ -127,8 +134,10 @@ new_client() {
   local pid=$!
   trap "kill_pid ${pid}" EXIT
   sleep 3s
+  #echo $pid
 
   local api="http://localhost:${PROXY_PORT}/api/v1/namespaces/${NAMESPACE}/services"
+  #echo $api
   http --ignore-stdin PUT "${api}/device-registry/proxy/api/v1/devices" credentials=@"${device_dir}/client.pem" \
     deviceUuid="${DEVICE_UUID}" deviceId="${device_id}" deviceName="${device_id}" deviceType=Other
   kill_pid "${pid}"
@@ -147,7 +156,8 @@ new_client() {
 }
 
 new_server() {
-  ${KUBECTL} get secret gateway-tls &>/dev/null && return 0
+#  echo "I am inside new server"
+  ${KUBECTL} get secret gateway-tls -n ${NAMESPACE} &>/dev/null && return 0
   mkdir -p "${SERVER_DIR}" "${DEVICES_DIR}"
 
   # This is a tag for including a chunk of code in the docs. Don't remove. tag::genserverkeys[]
@@ -165,11 +175,13 @@ new_server() {
   openssl req -new -x509 -days 3650 -key "${DEVICES_DIR}/ca.key" -config "${CWD}/certs/device_ca.cnf" \
     -out "${DEVICES_DIR}/ca.crt"
   # end::genserverkeys[]
-
+  if !kubectl get ns ${NAMESPACE} &>/dev/null; then
+  ${KUBECTL} create namespace ${NAMESPACE}
+  fi
   ${KUBECTL} create secret generic gateway-tls \
     --from-file "${SERVER_DIR}/server.key" \
     --from-file "${SERVER_DIR}/server.chain.pem" \
-    --from-file "${SERVER_DIR}/devices/ca.crt"
+    --from-file "${SERVER_DIR}/devices/ca.crt" -n ${NAMESPACE}
 }
 
 create_configs() {
@@ -270,6 +282,7 @@ start_services() {
 }
 
 configure_db_encryption() {
+  #echo "db encryption called"
   ${KUBECTL} get secret "tuf-keyserver-encryption" &>/dev/null && return 0
 
   local salt=$(openssl rand -base64 8)
@@ -278,9 +291,11 @@ configure_db_encryption() {
   ${KUBECTL} create secret generic "tuf-keyserver-encryption" \
     --from-literal="DB_ENCRYPTION_SALT=${salt}" \
     --from-literal="DB_ENCRYPTION_PASSWORD=${key}"
+  #echo "db encryption returned"
 }
 
 get_credentials() {
+  #echo "inside get credentials"
   ${KUBECTL} get secret "user-keys" &>/dev/null && return 0
 
   ${KUBECTL} proxy --port "${PROXY_PORT}" &
@@ -288,35 +303,47 @@ get_credentials() {
   trap "kill_pid ${pid}" EXIT
   sleep 3s
 
-  local namespace="x-ats-namespace:default"
+  local namespace="x-ats-namespace:${NAMESPACE}"
+#  echo "ats_namespace:" $namespace
   local api="http://localhost:${PROXY_PORT}/api/v1/namespaces/${NAMESPACE}/services"
+  #echo $api
   local keyserver="${api}/tuf-keyserver/proxy"
+  #echo $keyserver
   local reposerver="${api}/tuf-reposerver/proxy"
+  #echo $reposerver
   local director="${api}/director/proxy"
+  #echo $director
+
   local id
   local keys
 
   pod=$(wait_for_pods director-daemon)
   pod=$(wait_for_pods tuf-keyserver-daemon)
+  #echo "checking status of director"
   retry_command "director" "[[ true = \$(http --print=b GET ${director}/health \
     | jq --exit-status '.status == \"OK\"') ]]"
+  #echo "checking status of keyserver"
   retry_command "keyserver" "[[ true = \$(http --print=b GET ${keyserver}/health \
     | jq --exit-status '.status == \"OK\"') ]]"
+  #echo "checking status of reposerver"
   retry_command "reposerver" "[[ true = \$(http --print=b GET ${reposerver}/health/dependencies \
     | jq --exit-status '.status == \"OK\"') ]]"
+  #echo "hi there"
 
   id=$(http --ignore-stdin --check-status --print=b POST "${reposerver}/api/v1/user_repo" "${namespace}" | jq --raw-output .)
+  #echo $id
   http --ignore-stdin --check-status POST "${director}/api/v1/admin/repo" "${namespace}"
 
   retry_command "keys" "http --ignore-stdin --check-status GET ${keyserver}/api/v1/root/${id}"
   keys=$(http --ignore-stdin --check-status GET "${keyserver}/api/v1/root/${id}/keys/targets/pairs")
+  #echo $keys
   echo ${keys} | jq '.[0] | {keytype, keyval: {public: .keyval.public}}'   > "${SERVER_DIR}/targets.pub"
   echo ${keys} | jq '.[0] | {keytype, keyval: {private: .keyval.private}}' > "${SERVER_DIR}/targets.sec"
 
   retry_command "root.json" "http --ignore-stdin --check-status -d GET \
-    ${reposerver}/api/v1/user_repo/root.json \"${namespace}\"" && \
-    http --ignore-stdin --check-status -d -o "${SERVER_DIR}/root.json" GET \
-    ${reposerver}/api/v1/user_repo/root.json "${namespace}"
+   ${reposerver}/api/v1/user_repo/root.json \"${namespace}\"" && \
+   http --ignore-stdin --check-status -d -o "${SERVER_DIR}/root.json" GET \
+   ${reposerver}/api/v1/user_repo/root.json "${namespace}"
 
   echo "http://tuf-reposerver.${DNS_NAME}" > "${SERVER_DIR}/tufrepo.url"
   echo "https://${SERVER_NAME}:30443" > "${SERVER_DIR}/autoprov.url"
@@ -348,6 +375,9 @@ case "${command}" in
     start_infra
     start_vaults
     start_services
+    ;;
+  "check_dependencies")
+    check_dependencies
     ;;
   "start_ingress")
     start_ingress

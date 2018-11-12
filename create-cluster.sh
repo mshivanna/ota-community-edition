@@ -1,13 +1,17 @@
 #!/bin/sh -e
 
-if [ $# -ne 1 ] ; then
-	echo "Usage: $0 <DNS_NAME>"
-	echo "  example: $0 example.com"
+if [ $# -ne 3 ] ; then
+	echo "Usage: $0 <DNS_NAME> <nfs_server> <nfs_mount> <kubernetes_namespace>"
+	echo "  example: $0 example.com 1.2.3.4 /vol_kubenfs9/ota default"
 	exit 1
 fi
 
 DNS_NAME="$1"
 SERVER_NAME="ota-ce.${DNS_NAME}"
+NFS_SERVER=$2
+NFS_MOUNT=$3
+NAMESPACE=${4:-default}
+
 
 
 echo "= Creating config/local.yaml"
@@ -20,6 +24,13 @@ cat >config/local.yaml <<EOF
 # 3) When you deploy this securely, you'll need your own nginx reverse-proxy
 #    that can handle authentication/authorization.
 create_ingress: false
+
+# In which namespace do you want to create the ota infrastructure and services
+kube_namespace: ${NAMESPACE}
+
+#NFS server and NFS mount details:
+nfs_server: ${NFS_SERVER}
+nfs_mount: ${NFS_MOUNT}
 
 # We aren't using an Ingress, but templates/services/app.tmpl.yaml still
 # uses this for building up the DNS names of the services it uses. This
@@ -45,13 +56,13 @@ director_java_opts: "-Xmx700m"
 director_mem: 750Mi
 
 kafka_mem: 750Mi
-kafka_disk: 80Gi
+kafka_disk: 20Gi
 
-mysql_disk: 80Gi
+mysql_disk: 20Gi
 
 treehub_java_opts: "-Xmx1750m"
 treehub_mem: 2Gi
-treehub_disk: 200Gi
+treehub_disk: 20Gi
 
 tuf_keyserver_daemon_java_opts: "-Xmx450m"
 tuf_keyserver_daemon_mem: 500Mi
@@ -63,33 +74,35 @@ tuf_reposerver_java_opts: "-Xmx700m"
 tuf_reposerver_mem: 750Mi
 
 zookeeper_mem: 500Mi
-zookeeper_disk: 80Gi
+zookeeper_disk: 20Gi
 EOF
 
-echo "= Creating cluster, should take about 3 minutes ..."
-./contrib/gke/gcloud container clusters create ota-ce \
-     --machine-type n1-standard-2 --num-nodes=5 --cluster-version=1.10.4-gke.3
+#echo "= Creating cluster, should take about 3 minutes ..."
+#./contrib/gke/gcloud container clusters create ota-ce \
+     #--machine-type n1-standard-2 --num-nodes=5 --cluster-version=1.10.4-gke.3
 
-./contrib/gke/gcloud container clusters get-credentials ota-ce
-
-./contrib/gke/make SERVER_NAME=$SERVER_NAME new-server
+#./contrib/gke/gcloud container clusters get-credentials ota-ce
+#echo "calling make"
+make check_dependencies
+make SERVER_NAME=$SERVER_NAME NAMESPACE=${NAMESPACE} new-server
 
 echo "= Running start-infra, should take about 3 minutes ..."
-./contrib/gke/make start-infra
+make start-infra
 
 echo "= Running start-services, should take about 2 minutes ..."
-./contrib/gke/make SERVER_NAME=$SERVER_NAME DNS_NAME=$DNS_NAME start-services
+make SERVER_NAME=$SERVER_NAME DNS_NAME=$DNS_NAME NAMESPACE=${NAMESPACE} start-services
 
- sudo chown -R $USER generated
+chown -R $USER generated
 
 echo "= Your cluster is up and running. Here are the pods:"
-./contrib/gke/kubectl get pods
+kubectl get pods -n ${NAMESPACE}
 
-echo
+# echo
 echo -n "= Waiting for public IP of reverse-proxy "
 ip="null"
+sleep 20
 while [ "$ip" == "null" ] ; do
-  ip=$(./contrib/gke/kubectl get svc reverse-proxy -o json | jq -r '.status.loadBalancer.ingress[0].ip')
+  ip=$(kubectl get svc reverse-proxy -n ${NAMESPACE} -o json | jq -r '.status.loadBalancer.ingress[0].ip')
   sleep 10s
   echo -n "."
 done

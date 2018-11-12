@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kafka-config
+  namespace: {{.kube_namespace}}
 data:
   KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
   KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
@@ -12,6 +13,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kafka-shared
+  namespace: {{.kube_namespace}}
 data:
   KAFKA_BOOTSTRAP_SERVERS: {{.kafka_host}}:9092
   KAFKA_HOST: {{.kafka_host}}:9092
@@ -21,6 +23,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: kafka
+  namespace: {{.kube_namespace}}
 spec:
   serviceName: kafka
   replicas: 1
@@ -89,25 +92,30 @@ spec:
             cpu: {{ .kafka_cpu }}
             memory: {{ .kafka_mem }}
         volumeMounts:
-        - name: kafka-claim
+        - name: kafka-claim-{{.kube_namespace}}
           mountPath: /opt/kafka/data
           subPath: kafka
   volumeClaimTemplates:
   - metadata:
-      name: kafka-claim
+      name: kafka-claim-{{.kube_namespace}}
       annotations:
-        volume.beta.kubernetes.io/storage-class: {{ .storage_class_name }}
+        #volume.beta.kubernetes.io/storage-class: {{ .storage_class_name }}
     spec:
       accessModes:
         - ReadWriteOnce
       resources:
         requests:
           storage: {{ .kafka_disk }}
+      selector:
+        matchLabels:
+           app: ota
+           id: ota-kafka-pv-{{.kube_namespace}}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: kafka
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - port: 9092

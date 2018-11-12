@@ -2,6 +2,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: oauthful
+  namespace: {{.kube_namespace}}
 spec:
   replicas: 1
   selector:
@@ -27,6 +28,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: oauthful
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - targetPort: 8000

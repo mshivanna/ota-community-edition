@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tuf-keyserver-config
+  namespace: {{.kube_namespace}}
 data:
   BIND_PORT: '9001'
   DB_MIGRATE: 'true'
@@ -19,6 +20,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tuf-keyserver
+  namespace: {{.kube_namespace}}
 spec:
   selector:
     matchLabels:
@@ -71,6 +73,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: tuf-keyserver-secret
+  namespace: {{.kube_namespace}}
 type: Opaque
 data:
   DB_PASSWORD: {{ .tuf_keyserver_db_password | b64enc }}
@@ -79,6 +82,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tuf-keyserver
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - port: 80

@@ -3,12 +3,14 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: mysql-config
+  namespace: {{.kube_namespace}}
 data:
 ---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mysql
+  namespace: {{.kube_namespace}}
 spec:
   serviceName: mysql
   replicas: 1
@@ -39,33 +41,38 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
-        readinessProbe:
-          exec:
-            # Check we can execute queries over TCP (skip-networking is off).
-            command: ["mysql", "-h", "127.0.0.1", "-proot", "-e", "SELECT 1"]
-          initialDelaySeconds: 5
-          periodSeconds: 2
-          timeoutSeconds: 1
+        # readinessProbe:
+        #   exec:
+        #     # Check we can execute queries over TCP (skip-networking is off).
+        #     command: [mysql-proot -e "SELECT 1"]
+        #   initialDelaySeconds: 5
+        #   periodSeconds: 2
+        #   timeoutSeconds: 1
         volumeMounts:
-        - name: mysql-claim
+        - name: mysql-claim-{{.kube_namespace}}
           mountPath: /var/lib/mysql
           subPath: mysql
   volumeClaimTemplates:
   - metadata:
-      name: mysql-claim
+      name: mysql-claim-{{.kube_namespace}}
       annotations:
-        volume.beta.kubernetes.io/storage-class: {{ .storage_class_name }}
+        #volume.beta.kubernetes.io/storage-class: {{ .storage_class_name }}
     spec:
       accessModes:
         - ReadWriteOnce
       resources:
         requests:
           storage: {{ .mysql_disk }}
+      selector:
+        matchLabels:
+           app: ota
+           id: ota-mysql-pv-{{.kube_namespace}}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-secret
+  namespace: {{.kube_namespace}}
 type: Opaque
 data:
   MYSQL_ROOT_PASSWORD: {{ .mysql_root_password | b64enc }}
@@ -74,6 +81,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - port: 3306

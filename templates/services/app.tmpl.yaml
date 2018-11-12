@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
+  namespace: {{.kube_namespace}}
 data:
   AUTH_PLUS_HOST: auth-plus
   AUTH_PLUS_PORT: '80'
@@ -48,6 +49,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: app
+  namespace: {{.kube_namespace}}
 spec:
   selector:
     matchLabels:
@@ -95,6 +97,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: app
+  namespace: {{.kube_namespace}}
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/limit-whitelist: {{.ingress_acl_whitelist}}
@@ -113,6 +116,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: app-secret
+  namespace: {{.kube_namespace}}
 type: Opaque
 data:
   JWT_SECRET: {{ .jwt_secret | b64enc }}
@@ -122,6 +126,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: app
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - port: 80

@@ -1,0 +1,91 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ota-kafka-pv-{{.kube_namespace}}
+  namespace: {{.kube_namespace}}
+  labels:
+    app: ota
+    id: ota-kafka-pv-{{.kube_namespace}}
+    type: nfs-volume
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    ####################################
+    # MUST SET ACTUAL NFS SERVER IP HERE
+    server: {{.nfs_server}}
+    ####################################
+    path: /{{.nfs_mount}}
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ota-mysql-pv-{{.kube_namespace}}
+  namespace: {{.kube_namespace}}
+  labels:
+    app: ota
+    id: ota-mysql-pv-{{.kube_namespace}}
+    type: nfs-volume
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    ####################################
+    # MUST SET ACTUAL NFS SERVER IP HERE
+    server: {{.nfs_server}}
+    ####################################
+    path: /{{.nfs_mount}}
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ota-zookeeper-pv-{{.kube_namespace}}
+  namespace: {{.kube_namespace}}
+  labels:
+    app: ota
+    id: ota-zookeeper-pv-{{.kube_namespace}}
+    type: nfs-volume
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    ####################################
+    # MUST SET ACTUAL NFS SERVER IP HERE
+    server: {{.nfs_server}}
+    ####################################
+    path: /{{.nfs_mount}}
+    readOnly: false
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ota-treehub-pv-{{.kube_namespace}}
+  namespace: {{.kube_namespace}}
+  labels:
+    app: treehub
+    id: ota-treehub-pv-{{.kube_namespace}}
+    type: nfs-volume
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    ####################################
+    # MUST SET ACTUAL NFS SERVER IP HERE
+    server: {{.nfs_server}}
+    ####################################
+    path: /{{.nfs_mount}}
+    readOnly: false

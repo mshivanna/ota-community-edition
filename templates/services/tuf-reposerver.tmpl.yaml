@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: tuf-reposerver-config
+  namespace: {{.kube_namespace}}
 data:
   AUTH_PROTOCOL: none
   AUTH_VERIFICATION: none
@@ -24,6 +25,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: tuf-reposerver
+  namespace: {{.kube_namespace}}
 spec:
   selector:
     matchLabels:
@@ -67,6 +69,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: tuf-reposerver
+  namespace: {{.kube_namespace}}
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
@@ -83,6 +86,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: tuf-reposerver-secret
+  namespace: {{.kube_namespace}}
 type: Opaque
 data:
   DB_PASSWORD: {{ .tuf_reposerver_db_password | b64enc }}
@@ -91,6 +95,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: tuf-reposerver
+  namespace: {{.kube_namespace}}
 spec:
   ports:
   - port: 80
